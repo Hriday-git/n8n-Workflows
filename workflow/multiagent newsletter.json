@@ -1,0 +1,506 @@
+{
+  "name": "multiagent newsletter",
+  "nodes": [
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"required\": [\"title\", \"topics\"],\n  \"properties\": {\n    \"title\": {\n      \"type\": \"string\",\n      \"description\": \"A short, descriptive title\"\n    },\n    \"topics\": {\n      \"type\": \"array\",\n      \"description\": \"An array of exactly three topics\",\n      \"minItems\": 3,\n      \"maxItems\": 3,\n      \"items\": {\n        \"type\": \"string\"\n      }\n    }\n  },\n  \"additionalProperties\": false\n}\n\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        576,
+        272
+      ],
+      "id": "ecd63fa5-e6a8-4b52-a962-ae2ff2158abe",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "gpt-4"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        800,
+        288
+      ],
+      "id": "b7bb2211-7c54-4f62-9fac-688263adcb84",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "E5yFMbH2PmlpOWzc",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.topics",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        720,
+        16
+      ],
+      "id": "6570a599-090d-428c-bc93-89a67c09c3f0",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "query": "={{ $json['output.topics'] }}",
+        "options": {
+          "time_range": "month"
+        }
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavily",
+      "typeVersion": 1,
+      "position": [
+        896,
+        16
+      ],
+      "id": "5c30b29d-9e37-4148-bad2-aa240843ca15",
+      "name": "research topics",
+      "credentials": {
+        "tavilyApi": {
+          "id": "UM8sMDuI4rAQfaMs",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "query": "How AI agents are changing productivity for individuals and small teams in 2025",
+        "options": {
+          "topic": "general",
+          "max_results": 3,
+          "time_range": "week"
+        }
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavily",
+      "typeVersion": 1,
+      "position": [
+        256,
+        16
+      ],
+      "id": "a73393ca-a929-4500-a137-ca87e57adf34",
+      "name": "initial research",
+      "credentials": {
+        "tavilyApi": {
+          "id": "UM8sMDuI4rAQfaMs",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Topic :  {{ $json.query }}\n\nResearch:\n{{ $json.results.map(item => JSON.stringify(item, null, 2)).join('\\n\\n') }}\n",
+        "options": {
+          "systemMessage": "# Overview\nYou are a professional newsletter section writer. Your only task is to write one standalone section of a newsletter.\n\n## Instructions\n- Always include a clear section heading followed by the section content.\n- Do not write an overall title, introduction, or conclusion.\n- Write in a professional, expert, and engaging tone suitable for a business newsletter.\n- If you reference facts, data, or quotes, you must cite your sources and provide the actual clickable URLs.\n- Do not invent citations—only include real, verifiable sources.\n- Keep the section concise, well-structured, and easy to read."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1088,
+        16
+      ],
+      "id": "ec9e6680-5786-4266-9ffb-e245e31ac2c3",
+      "name": "section writer agent"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "output"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        16
+      ],
+      "id": "6a32c609-4d3b-460b-8152-73d84934bbd5",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Title : {{ $('planning Agent').item.json.output.title }}\n\nSections: {{ $json.output.join(\"\\n\\n\\n\") }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=# Overview\nYou are an expert newsletter editor. Merge exactly three provided sections into a cohesive, email-ready HTML body with a holistic introduction and conclusion. Maintain a professional, concise tone for a business audience and preserve intended meaning.\n\n## Goals\n- Refine clarity, flow, and consistency across all sections.\n- Keep total content output ≤ 1000 words (hard limit). Avoid fluff.\n\n## Structure (HTML only)\n1) <p> Introduction that frames the three topics and their relevance; reference today’s date: {{ $now.format('yyyy-MM-dd') }}.\n2) For each provided section:\n   - <h2> Use or lightly adjust the given title.\n   - Edited <p> content.\n   - Inline, clickable citations near related claims using <a href=\"https://...\">Source</a>. Never invent sources.\n3) <h3>Sources</h3><ul> A single consolidated list:\n   - Each item: <li><a href=\"[URL]\">[Publication Name] – [Article Title]</a></li>\n   - Include full URLs, deduplicate identical links, and alphabetize by Publication Name.\n4) <p> Conclusion tying threads together with implications or next steps.\n\n## Citation and Link Rules\n- Every factual claim relying on external information must include a real, verifiable, clickable URL.\n- Preserve any provided citations; standardize to the <a> format.\n- Omit unverifiable links rather than fabricate.\n- Use only basic HTML tags (<h2>, <h3>, <p>, <ul>, <li>, <a>). No images, scripts, styles, or external CSS.\n\n## Input\n- You will receive three sections. Edit and integrate them without adding unrelated topics.\n\nOutput Format (return only this)\nSubject: One clear, specific subject line (≤ 80 characters)\n\nContent:\n[HTML body only as specified above]\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1568,
+        16
+      ],
+      "id": "8fc92069-c86b-46b7-a3d5-8d73d18cbb58",
+      "name": "research agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.results.map(item => JSON.stringify(item, null, 2)).join('\\n\\n') }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an expert newsletter planner. You will receive three articles from the past week. Your job is to come up with a creative and fun title as well as the main topics for this newsletter. \n\n## Instructions\nThe newsletter should flow nicely, feel informative, and holistic. The topics should be 3-5 words."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        432,
+        16
+      ],
+      "id": "9100d52c-d2ff-4469-a376-08c889b45fa2",
+      "name": "planning Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.1",
+          "mode": "list",
+          "cachedResultName": "gpt-5.1"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1440,
+        272
+      ],
+      "id": "a43cbb1e-03e8-4e0d-82f3-f4a2d1241f1b",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "E5yFMbH2PmlpOWzc",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"subject\": {\n      \"type\": \"string\",\n      \"description\": \"the email subject\"\n    },\n    \"content\": {\n      \"type\": \"string\",\n      \"description\": \"the newsletter content\"\n    }\n  },\n  \"required\": [\"subject\", \"content\"]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1680,
+        272
+      ],
+      "id": "29a979fc-4095-4206-8a29-523ee6455c98",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $json.output.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.output.content }}",
+        "options": {
+          "sendTo": "hridaypipalia2005@gmail.com"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1888,
+        16
+      ],
+      "id": "7f05658f-37d3-4b1a-a1a8-0223bfbd4185",
+      "name": "Create a draft",
+      "webhookId": "e6232401-cfc4-4d61-8505-769551c2214a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "67VV2H8n0wujXlmT",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        48,
+        16
+      ],
+      "id": "8f7d3b01-bff0-44cf-99cb-2b749c227a74",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "content": "## Generating Title and topics\n",
+        "height": 224,
+        "width": 448,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        416,
+        -48
+      ],
+      "typeVersion": 1,
+      "id": "1977d922-f5eb-4568-bee8-574990d6ac82",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Writing Newsletter Sections \n",
+        "height": 224,
+        "width": 464,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        880,
+        -48
+      ],
+      "typeVersion": 1,
+      "id": "952f7d2b-f7ec-431e-b8a7-bfe7069b57ca",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Editing Final Copy \n",
+        "height": 224,
+        "width": 448,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1376,
+        -48
+      ],
+      "typeVersion": 1,
+      "id": "0491123a-b8c5-4083-9c3c-7ecb173819e9",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Sending Draft\n",
+        "height": 224,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1840,
+        -48
+      ],
+      "typeVersion": 1,
+      "id": "c91fd4a0-d598-4f0a-b80c-d1ebcb0ce7e4",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## Trigger\n",
+        "height": 224,
+        "width": 176
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        16,
+        -48
+      ],
+      "typeVersion": 1,
+      "id": "8db42b42-f01b-4e8c-a6a4-6360050243a2",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Set your Topic\n",
+        "height": 224,
+        "width": 192,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        208,
+        -48
+      ],
+      "typeVersion": 1,
+      "id": "863ed17f-a76c-41cd-a7de-43e538ae2f24",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "planning Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "planning Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "section writer agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "research topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "initial research": {
+      "main": [
+        [
+          {
+            "node": "planning Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "research topics": {
+      "main": [
+        [
+          {
+            "node": "section writer agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "section writer agent": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "research agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "planning Agent": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "research agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "research agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "research agent": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "initial research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c08a5eae-3949-4353-b23f-576f183873d2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8f0d350ce548e6a48386a339230f08b2a91c65156b8e175776ff02293949fb80"
+  },
+  "id": "LzJb42F7YESAyBjU",
+  "tags": []
+}
