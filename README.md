@@ -50,6 +50,33 @@ The system reduces manual screening effort by automating document ingestion, eva
 - Google Drive  
 - Google Sheets
 
+
+ 3.Domain-Specific Retrieval-Augmented Generation (RAG) System
+![Simple RAG agent ](docs/simple-rag-agent.png)
+
+###Overview
+-A domain-specific Retrieval-Augmented Generation (RAG) system designed to answer user queries strictly from uploaded documents using AI-driven retrieval and generation.
+-The system ensures responses remain grounded in the provided knowledge base, significantly reducing hallucinations and off-topic outputs.
+
+##How the Workflow Works
+-Users upload domain-specific documents to the system.
+-Documents are chunked and converted into vector embeddings.
+-Embeddings are stored and indexed using Pinecone.
+-User queries are embedded and matched against the most relevant document chunks.
+-Retrieved context is passed to the LLM to generate accurate, document-grounded responses.
+
+###Key Capabilities
+-Domain-restricted question answering from uploaded documents.
+-Semantic retrieval using vector embeddings.
+-Context-aware response generation.
+-Reduced hallucinations by limiting responses to document data.
+
+##Tech Stack
+-Pinecone
+-Gemini API
+-AI Agents (retrieval and response orchestration)
+
+
 ## Notes
 - Workflow JSON files are provided for reference and demonstration.
 - Sensitive credentials are excluded and must be configured locally.
