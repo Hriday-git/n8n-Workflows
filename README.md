@@ -59,11 +59,11 @@ The system reduces manual screening effort by automating document ingestion, eva
 -The system ensures responses remain grounded in the provided knowledge base, significantly reducing hallucinations and off-topic outputs.
 
 ## How the Workflow Works
--Users upload domain-specific documents to the system.
--Documents are chunked and converted into vector embeddings.
--Embeddings are stored and indexed using Pinecone.
--User queries are embedded and matched against the most relevant document chunks.
--Retrieved context is passed to the LLM to generate accurate, document-grounded responses.
+1.Users upload domain-specific documents to the system.
+2.Documents are chunked and converted into vector embeddings.
+3.Embeddings are stored and indexed using Pinecone.
+4.User queries are embedded and matched against the most relevant document chunks.
+5.Retrieved context is passed to the LLM to generate accurate, document-grounded responses.
 
 ### Key Capabilities
 -Domain-restricted question answering from uploaded documents.
