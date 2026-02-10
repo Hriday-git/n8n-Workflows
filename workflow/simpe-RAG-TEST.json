@@ -1,0 +1,198 @@
+{
+  "name": "simpe-RAG-TEST",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=user message : {{ $json.body.message }}",
+        "options": {
+          "systemMessage": "You are a helpful assistant. You must call the pinecone tool to answer for any questions or task.\n\nwhenever user writes hello or hi or any type of greeting message always display the message \" Hello How can i help you ! \"\n\nyou must cite the document from which you are sourcing the knowledge and also cite the page number from where you are getting this knowledge from.\n\nI donot want any guess work or answers based on assumptions. If you dont have the correct or sufficient knowledge of the content asked to you display the message \" Sorry couldnt fetch information due to invalid context/ insufficient knowledge\" \n\nbefore answering the content asked by user make sure use rephrase the question asked by user into 2-3 optimised search queries."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        608,
+        0
+      ],
+      "id": "10711f0a-0710-4d1a-afc7-5f751185b169",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "chat"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        672,
+        224
+      ],
+      "id": "3a9a1429-ff3d-45aa-99ca-4fbf5c5734a0",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "toolDescription": "call this pinecone tool to answer any questions and retrieve relevant knowledge",
+        "method": "POST",
+        "url": "=https://prod-1-data.ke.pinecone.io/assistant/chat/chitanna",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Pinecone-API-Version",
+              "value": "2025-04"
+            },
+            {
+              "name": "Api-Key",
+              "value": "pcsk_WkZAq_NhyX4dHL6z9FHyMr2JsgL7jxYqNMR6p1rrmKaRL3Pn5sPgFSDJ891YtSLppemxa"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"{{$fromAI(\"searchQuery\")}}\"\n    }\n  ],\n  \"stream\": false,\n  \"model\": \"gpt-4o\",\n\"include_highlights\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        848,
+        224
+      ],
+      "id": "ac92236e-cdd9-44fb-97fd-a88385ace705",
+      "name": "pinecone tool",
+      "credentials": {
+        "oAuth2Api": {
+          "id": "RbOgaEdeYCQGuPQc",
+          "name": "ZOHO-BOOKS"
+        },
+        "httpHeaderAuth": {
+          "id": "l7WszM3oJDKwg2nj",
+          "name": "PINECONE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        496,
+        208
+      ],
+      "id": "585ce938-8360-43c4-b5c0-1bc6d1f2d622",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "3UfvQg6RqPg1pgd4",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "2ecce6ae-113b-4c34-ae27-e8323e403763",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        272,
+        0
+      ],
+      "id": "3233c39b-5da4-4f44-831f-1cc0ed963de9",
+      "name": "Webhook",
+      "webhookId": "2ecce6ae-113b-4c34-ae27-e8323e403763"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        976,
+        0
+      ],
+      "id": "ec889f9a-ef3c-49bd-bc5e-4bab19b4cf2c",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "pinecone tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0410a0d2-73e7-4540-8596-cf50b98bb832",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8f0d350ce548e6a48386a339230f08b2a91c65156b8e175776ff02293949fb80"
+  },
+  "id": "65u1jLU5ZUGTBHcy",
+  "tags": []
+}
