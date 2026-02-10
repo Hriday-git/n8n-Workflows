@@ -5,18 +5,17 @@ Collection of end-to-end automation workflows built using n8n
 1. Multi-Agent Content Automation System
 ![Newsletter Automation Flow](docs/newsletter-automation.png)
 
+## Included Workflow
+- Generates long-form newsletters and blogs from a single topic.
+- Automates research, content structuring, and drafting.
+- Designed for startup awareness, blogs, and newsletter use cases.
+
 ### How the Workflow Works
 1. Takes a single topic input as the trigger.
 2. Performs automated web research using external APIs.
 3. Uses multiple AI agents for planning, section-wise writing, and editing.
 4. Aggregates all sections into a final draft.
 5. Delivers the completed newsletter draft directly to Gmail.
-
-## Included Workflow
-### Multi-Agent Content Automation System
-- Generates long-form newsletters and blogs from a single topic.
-- Automates research, content structuring, and drafting.
-- Designed for startup awareness, blogs, and newsletter use cases.
 
 ## Tech Stack
 - n8n
